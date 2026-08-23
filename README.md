@@ -183,9 +183,13 @@ combination — this project sits at that intersection.
 Pi — Zero through 5 — since `gpiozero` auto-selects the correct backend
 (`lgpio` on Pi 5, `RPi.GPIO`-compatible on older boards).
 
-Both GPIO pins are configured `active_high=False, initial_value=True` to
-match the NC convention described above: the LED is lit at rest and each
-`pulse()` call briefly drives it low (off) for the break, then restores it.
+**Default behavior is NC** (Normally Closed), matching Boss gear and this
+build's actual RC-2 setup: the LED is lit at rest, and each `pulse()` call
+briefly drives it off for the momentary break, then restores it. Pass
+`--polarity no` to switch to Normally Open behavior instead (LED off at
+rest, briefly on for the press) — this is an option for adapting the
+bridge to other, non-Boss pedals, not something you need to touch for
+normal RC-2 operation.
 
 **Core math:**
 
@@ -200,9 +204,10 @@ sends a single break/restore pulse on the Stop line to kill playback.
 ### Usage
 
 ```bash
-python3 bpm.py 120                  # tap tempo at 120 BPM, runs until Ctrl+C
+python3 bpm.py 120                  # tap tempo at 120 BPM, NC (default), runs until Ctrl+C
 python3 bpm.py 90 --taps 8          # send exactly 8 taps at 90 BPM, then exit
 python3 bpm.py --stop               # fire the Stop pulse once
+python3 bpm.py 120 --polarity no    # switch to NO for a non-Boss pedal
 python3 bpm.py 120 --gpio-tap 22 --gpio-stop 27 --pulse-ms 80
 ```
 
@@ -215,6 +220,7 @@ python3 bpm.py 120 --gpio-tap 22 --gpio-stop 27 --pulse-ms 80
 | `--taps N` | run until Ctrl+C | Send exactly N tap pulses, then exit. |
 | `--gpio-tap` | 22 | BCM pin driving the Tap Tempo LED. |
 | `--gpio-stop` | 27 | BCM pin driving the Stop LED. |
+| `--polarity` | `nc` | Switch convention: `nc` (Normally Closed — Boss gear, default, no need to set for normal RC-2 use) or `no` (Normally Open — most third-party pedals). Case-insensitive. |
 | `--pulse-ms` | 80 | Pulse width in ms (keep within ~50–100ms). |
 
 ### Sweeping a BPM range: `sweep_taps.sh`
