@@ -24,7 +24,7 @@ sides, so the pedal's audio circuitry is fully isolated from the Pi.
 
 | Qty | Part |
 |---|---|
-| 1 | Raspberry Pi (GPIO-capable — Pi 4 or Pi 5) |
+| 1 | Raspberry Pi (GPIO-capable) |
 | 2 | Red LEDs |
 | 2 | Photoresistors (LDRs) |
 | 2 | Resistors, 220Ω–330Ω (current limiting for the LEDs) |
