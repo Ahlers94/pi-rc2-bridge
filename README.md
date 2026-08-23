@@ -13,10 +13,17 @@ between the Pi and the pedal.
 The Pi never touches the RC-2 electrically. Each GPIO pin drives an LED
 through a current-limiting resistor. That LED is taped face-to-face against
 a photoresistor (LDR) inside a light-sealed sleeve — together this pair is
-a **vactrol**. When the Pi turns the LED on, the LDR's resistance drops
-sharply, which the RC-2 reads as a footswitch closure on its TRS remote
-jack. Light is the only thing that crosses the boundary between the two
-sides, so the pedal's audio circuitry is fully isolated from the Pi.
+a **vactrol**. Light is the only thing that crosses the boundary between
+the two sides, so the pedal's audio circuitry is fully isolated from the Pi.
+
+Boss footswitch inputs, including the RC-2's remote jack, are **Normally
+Closed (NC)** — the circuit holds continuity at rest and briefly *breaks*
+to register a press. The vactrols emulate this: the LED sits **on**
+continuously at rest (LDR resistance low = closed contact), and the Pi
+briefly turns it **off** to simulate the momentary break the RC-2 is
+listening for. This is the opposite of the more common normally-open (NO)
+convention used by most third-party/generic pedals — worth double-checking
+if you ever adapt this bridge to a non-Boss unit.
 
 ---
 
@@ -24,7 +31,7 @@ sides, so the pedal's audio circuitry is fully isolated from the Pi.
 
 | Qty | Part |
 |---|---|
-| 1 | Raspberry Pi (GPIO-capable) |
+| 1 | Raspberry Pi (any GPIO-capable model — Zero through 5) |
 | 2 | Red LEDs |
 | 2 | Photoresistors (LDRs) |
 | 2 | Resistors, 220Ω–330Ω (current limiting for the LEDs) |
@@ -131,10 +138,45 @@ sides, so the pedal's audio circuitry is fully isolated from the Pi.
 
 ---
 
+## Scope & Limitations
+
+This bridge only controls **Tap Tempo** and **Stop** — the two functions
+the RC-2's remote jack actually exposes. There is no remote **Play/Start**
+input on this pedal; playback can only be started by physically pressing
+the RC-2's main footswitch housing. Confirmed behavior:
+
+- **While stopped:** an external tap changes tempo only (flashes the LED,
+  adjusts the guide rhythm speed). It will not start playback.
+- **While playing:** an external tap changes playback speed in real time.
+
+So the practical workflow is: dial in a tempo remotely with `bpm.py`,
+then press Play on the pedal itself. Early drafts of this project explored
+fully automating a "start loop → wait → stop → next BPM" sweep, but that's
+not achievable through this jack alone — it would require a physical
+actuator (servo/solenoid) pressing the housing switch, which is out of
+scope for this build.
+
+## Prior Art
+
+DIY LED+LDR vactrols and remote tap-tempo footswitches are both
+well-established, separately, in the pedal-building and synth-DIY
+communities. Puppeting an unmodified commercial pedal's existing remote
+jack from a general-purpose computer (rather than building a pedal around
+one, or wiring a plain mechanical footswitch) appears to be a less common
+combination — this project sits at that intersection.
+
+---
+
 ## Software: `bpm.py`
 
-**Requirements:** Python 3, `gpiozero` (`pip install gpiozero`). Works on
-Pi 4 and Pi 5 — `gpiozero` auto-selects the correct backend.
+**Requirements:** Python 3, `gpiozero` (`pip install gpiozero`, or
+`pip install -r requirements.txt`). Works on any GPIO-capable Raspberry
+Pi — Zero through 5 — since `gpiozero` auto-selects the correct backend
+(`lgpio` on Pi 5, `RPi.GPIO`-compatible on older boards).
+
+Both GPIO pins are configured `active_high=False, initial_value=True` to
+match the NC convention described above: the LED is lit at rest and each
+`pulse()` call briefly drives it low (off) for the break, then restores it.
 
 **Core math:**
 
