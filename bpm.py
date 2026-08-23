@@ -7,7 +7,15 @@ into the RC-2's TRS remote jack:
     GPIO Pin A -> Tap Tempo vactrol LED
     GPIO Pin B -> Stop vactrol LED
 
-Requires: gpiozero (works on Pi 4 and Pi 5; auto-selects lgpio/RPi.GPIO backend)
+Switch polarity: Boss footswitch inputs (including the RC-2's remote
+jack) are Normally Closed (NC). To emulate that through a vactrol, the
+LED sits ON at rest (continuity/closed) and briefly turns OFF for each
+tap or stop (the momentary break). Both OutputDevice pins are configured
+active_high=False, initial_value=True to reflect this: .on() drives the
+pin low (LED off / break), .off() drives it high (LED on / closed).
+
+Requires: gpiozero (works on any GPIO-capable Pi -- Zero through 5;
+auto-selects lgpio/RPi.GPIO backend as needed)
     pip install gpiozero
 
 Usage:
@@ -36,7 +44,8 @@ DEFAULT_PULSE_MS = 80  # within the RC-2's expected footswitch press window (50-
 
 
 def pulse(pin_device: OutputDevice, pulse_ms: int, label: str) -> None:
-    """Drive a GPIO pin HIGH briefly to simulate a footswitch press."""
+    """Briefly break the NC circuit (LED off) to simulate a footswitch press,
+    then restore it (LED on) -- matching Boss's normally-closed convention."""
     pin_device.on()
     time.sleep(pulse_ms / 1000.0)
     pin_device.off()
@@ -58,7 +67,7 @@ def run_tap_tempo(bpm: float, tap_pin: int, pulse_ms: int, taps: int | None) -> 
     print(f"Tap tempo: {bpm} BPM -> {interval:.4f}s interval, pulse {pulse_ms}ms")
     print("Press Ctrl+C to stop." if taps is None else f"Sending {taps} taps.")
 
-    tap = OutputDevice(tap_pin, active_high=True, initial_value=False)
+    tap = OutputDevice(tap_pin, active_high=False, initial_value=True)
     try:
         count = 0
         next_tap = time.monotonic()
@@ -77,7 +86,7 @@ def run_tap_tempo(bpm: float, tap_pin: int, pulse_ms: int, taps: int | None) -> 
 
 
 def run_stop(stop_pin: int, pulse_ms: int) -> None:
-    stop = OutputDevice(stop_pin, active_high=True, initial_value=False)
+    stop = OutputDevice(stop_pin, active_high=False, initial_value=True)
     try:
         pulse(stop, pulse_ms, "STOP")
     finally:
