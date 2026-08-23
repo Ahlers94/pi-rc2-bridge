@@ -6,6 +6,15 @@ photoresistor, light-sealed) replace manual foot-stomping with programmatic
 control over **Tap Tempo** and **Stop**, with no electrical connection
 between the Pi and the pedal.
 
+## Repo Contents
+
+| File | Purpose |
+|---|---|
+| `bpm.py` | Sends tap-tempo pulses and a single Stop pulse via GPIO |
+| `sweep_taps.sh` | Walks `bpm.py` through a range of BPMs with a delay between steps |
+| `requirements.txt` | Python dependencies (`gpiozero`) |
+| `LICENSE` | MIT |
+
 ---
 
 ## How It Works
@@ -34,7 +43,7 @@ if you ever adapt this bridge to a non-Boss unit.
 | 1 | Raspberry Pi (any GPIO-capable model — Zero through 5) |
 | 2 | Red LEDs |
 | 2 | Photoresistors (LDRs) |
-| 2 | Resistors, 220Ω–330Ω (current limiting for the LEDs) |
+| 2 | Resistors, 220Ω–330Ω (current limiting for the LEDs) — this build uses 330Ω |
 | 1 | Chopped 3.5mm TRS cable, stepped up to a 1/4" plug |
 | — | Black electrical tape or heat-shrink tubing (light sealing) |
 | — | Hookup wire, breadboard or solder supplies |
@@ -47,7 +56,7 @@ if you ever adapt this bridge to a non-Boss unit.
                          RASPBERRY PI (BCM)                                                    
                     ┌──────────────────────┐
                     │                      │
-                    │   GPIO 17 (Tap) ●────┼───────────────┐
+                    │   GPIO 22 (Tap) ●────┼───────────────┐
                     │                      │                │
                     │   GPIO 27 (Stop)●────┼───────────┐    │
                     │                      │            │    │
@@ -114,7 +123,7 @@ if you ever adapt this bridge to a non-Boss unit.
 **Pi / active side**
 | From | Via | To |
 |---|---|---|
-| GPIO 17 (Tap) | 220–330Ω resistor | LED1 anode (+) |
+| GPIO 22 (Tap) | 220–330Ω resistor | LED1 anode (+) |
 | LED1 cathode (−) | — | Pi GND |
 | GPIO 27 (Stop) | 220–330Ω resistor | LED2 anode (+) |
 | LED2 cathode (−) | — | Pi GND |
@@ -184,8 +193,9 @@ match the NC convention described above: the LED is lit at rest and each
 interval (seconds) = 60 / BPM
 ```
 
-The script pulses the Tap GPIO HIGH for ~50–100ms at that interval to
-sync the RC-2's tempo, and pulses the Stop GPIO once to kill playback.
+The script sends a short train of taps at that interval to sync the RC-2's
+tempo (each tap = a brief LED-off break, per the NC behavior above), and
+sends a single break/restore pulse on the Stop line to kill playback.
 
 ### Usage
 
@@ -193,7 +203,7 @@ sync the RC-2's tempo, and pulses the Stop GPIO once to kill playback.
 python3 bpm.py 120                  # tap tempo at 120 BPM, runs until Ctrl+C
 python3 bpm.py 90 --taps 8          # send exactly 8 taps at 90 BPM, then exit
 python3 bpm.py --stop               # fire the Stop pulse once
-python3 bpm.py 120 --gpio-tap 17 --gpio-stop 27 --pulse-ms 80
+python3 bpm.py 120 --gpio-tap 22 --gpio-stop 27 --pulse-ms 80
 ```
 
 ### CLI Options
@@ -203,9 +213,28 @@ python3 bpm.py 120 --gpio-tap 17 --gpio-stop 27 --pulse-ms 80
 | `bpm` (positional) | — | Target tempo in BPM. Omit if using `--stop` alone. |
 | `--stop` | off | Fire a single Stop pulse and exit. |
 | `--taps N` | run until Ctrl+C | Send exactly N tap pulses, then exit. |
-| `--gpio-tap` | 17 | BCM pin driving the Tap Tempo LED. |
+| `--gpio-tap` | 22 | BCM pin driving the Tap Tempo LED. |
 | `--gpio-stop` | 27 | BCM pin driving the Stop LED. |
 | `--pulse-ms` | 80 | Pulse width in ms (keep within ~50–100ms). |
+
+### Sweeping a BPM range: `sweep_taps.sh`
+
+For walking through many tempos in sequence (e.g. sampling a pedal's
+built-in rhythms across a BPM range), `sweep_taps.sh` calls `bpm.py` once
+per step with a short delay in between. It does **not** control Play/Stop —
+see [Scope & Limitations](#scope--limitations) — so pair it with manually
+pressing Play/Record/Stop on the pedal as needed.
+
+```bash
+chmod +x sweep_taps.sh
+./sweep_taps.sh                       # 40 to 250 BPM, step 4 (default)
+./sweep_taps.sh 60 180 2              # custom range + step
+./sweep_taps.sh 40 250 4 --taps 6     # extra args pass straight through to bpm.py
+SWEEP_DELAY=2 ./sweep_taps.sh         # override the 1s default delay between steps
+```
+
+Must be run from the same directory as `bpm.py` (or edit the script to
+reference `bpm.py` by full path).
 
 ---
 
