@@ -22,7 +22,7 @@ Usage:
     python3 bpm.py 120                 # tap tempo at 120 BPM, runs until Ctrl+C
     python3 bpm.py 90 --taps 8         # send exactly 8 taps at 90 BPM, then exit
     python3 bpm.py --stop              # fire the Stop pulse once
-    python3 bpm.py 120 --gpio-tap 17 --gpio-stop 27 --pulse-ms 80
+    python3 bpm.py 120 --gpio-tap 22 --gpio-stop 27 --pulse-ms 80
 """
 
 import argparse
@@ -38,7 +38,9 @@ except ImportError:
     )
 
 # Defaults -- adjust to match your wiring
-DEFAULT_TAP_PIN = 17   # BCM numbering
+# Note: GPIO17 is NOT used here -- on Patchbox OS / Pisound HAT setups it's
+# claimed by the onboard "pisound-btn" hardware button (see `gpioinfo`).
+DEFAULT_TAP_PIN = 22   # BCM numbering
 DEFAULT_STOP_PIN = 27  # BCM numbering
 DEFAULT_PULSE_MS = 80  # within the RC-2's expected footswitch press window (50-100ms)
 
